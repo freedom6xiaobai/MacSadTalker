@@ -37,12 +37,12 @@ class KeypointExtractor():
         ### gfpgan/weights
         try:
             import webui  # in webui
-            root_path = 'extensions/SadTalker/gfpgan/weights' 
+            root_path = 'extensions/SadTalker/_gfpgan/weights'
 
         except:
-            root_path = 'gfpgan/weights'
+            root_path = '_gfpgan/weights'
 
-        self.detector = init_alignment_model('awing_fan',device=device, model_rootpath=root_path)   
+        self.detector = init_alignment_model('awing_fan',device=device, model_rootpath=root_path)
         self.det_net = init_detection_model('retinaface_resnet50', half=False,device=device, model_rootpath=root_path)
 
     def extract_keypoint(self, images, name=None, info=True):
@@ -71,7 +71,7 @@ class KeypointExtractor():
                         # face detection -> face alignment.
                         img = np.array(images)
                         bboxes = self.det_net.detect_faces(images, 0.97)
-                        
+
                         bboxes = bboxes[0]
                         img = img[int(bboxes[1]):int(bboxes[3]), int(bboxes[0]):int(bboxes[2]), :]
 
@@ -88,11 +88,11 @@ class KeypointExtractor():
                         time.sleep(1)
                     else:
                         print(e)
-                        break    
+                        break
                 except TypeError:
                     print('No face detected in this image')
                     shape = [68, 2]
-                    keypoints = -1. * np.ones(shape)                    
+                    keypoints = -1. * np.ones(shape)
                     break
             if name is not None:
                 np.savetxt(os.path.splitext(name)[0]+'.txt', keypoints.reshape(-1))
@@ -120,7 +120,7 @@ def run(data):
     name = filename.split('/')[-2:]
     os.makedirs(os.path.join(opt.output_dir, name[-2]), exist_ok=True)
     kp_extractor.extract_keypoint(
-        images, 
+        images,
         name=os.path.join(opt.output_dir, name[-2], name[-1])
     )
 
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     VIDEO_EXTENSIONS_LOWERCASE = {'mp4'}
     VIDEO_EXTENSIONS = VIDEO_EXTENSIONS_LOWERCASE.union({f.upper() for f in VIDEO_EXTENSIONS_LOWERCASE})
     extensions = VIDEO_EXTENSIONS
-    
+
     for ext in extensions:
         os.listdir(f'{opt.input_dir}')
         print(f'{opt.input_dir}/*.{ext}')

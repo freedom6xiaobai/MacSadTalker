@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import platform
 
 from src.utils.preprocess import CropAndExtract
-from src.test_audio2coeff import Audio2Coeff  
+from src.test_audio2coeff import Audio2Coeff
 from src.facerender.animate import AnimateFromCoeff
 from src.facerender.pirender_animate import AnimateFromCoeff_PIRender
 from src.generate_batch import get_data
@@ -38,7 +38,7 @@ def main(args):
     preprocess_model = CropAndExtract(sadtalker_paths, device)
 
     audio_to_coeff = Audio2Coeff(sadtalker_paths,  device)
-    
+
     if args.facerender == 'facevid2vid':
         animate_from_coeff = AnimateFromCoeff(sadtalker_paths, device)
     elif args.facerender == 'pirender':
@@ -66,7 +66,7 @@ def main(args):
         ref_eyeblink_coeff_path=None
 
     if ref_pose is not None:
-        if ref_pose == ref_eyeblink: 
+        if ref_pose == ref_eyeblink:
             ref_pose_coeff_path = ref_eyeblink_coeff_path
         else:
             ref_pose_videoname = os.path.splitext(os.path.split(ref_pose)[-1])[0]
@@ -85,25 +85,26 @@ def main(args):
     if args.face3dvis:
         from src.face3d.visualize import gen_composed_video
         gen_composed_video(args, device, first_coeff_path, coeff_path, audio_path, os.path.join(save_dir, '3dface.mp4'))
-    
+
     #coeff2video
-    data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path, 
+    data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path,
                                 batch_size, input_yaw_list, input_pitch_list, input_roll_list,
                                 expression_scale=args.expression_scale, still_mode=args.still, preprocess=args.preprocess, size=args.size, facemodel=args.facerender)
-    
-    result = animate_from_coeff.generate(data, save_dir, pic_path, crop_info, \
-                                enhancer=args.enhancer, background_enhancer=args.background_enhancer, preprocess=args.preprocess, img_size=args.size)
-    
+
+    result = animate_from_coeff.generate(data, save_dir, pic_path, crop_info, enhancer=args.enhancer,
+                                         background_enhancer=args.background_enhancer, preprocess=args.preprocess,
+                                         img_size=args.size)
+
     shutil.move(result, save_dir+'.mp4')
     print('The generated video is named:', save_dir+'.mp4')
 
     if not args.verbose:
         shutil.rmtree(save_dir)
 
-    
+
 if __name__ == '__main__':
 
-    parser = ArgumentParser()  
+    parser = ArgumentParser()
     parser.add_argument("--driven_audio", default='./examples/driven_audio/bus_chinese.wav', help="path to driven audio")
     parser.add_argument("--source_image", default='./examples/source_image/full_body_1.png', help="path to source image")
     parser.add_argument("--ref_eyeblink", default=None, help="path to reference video providing eye blinking")
@@ -119,14 +120,14 @@ if __name__ == '__main__':
     parser.add_argument('--input_roll', nargs='+', type=int, default=None, help="the input roll degree of the user")
     parser.add_argument('--enhancer',  type=str, default=None, help="Face enhancer, [gfpgan, RestoreFormer]")
     parser.add_argument('--background_enhancer',  type=str, default=None, help="background enhancer, [realesrgan]")
-    parser.add_argument("--cpu", dest="cpu", action="store_true") 
-    parser.add_argument("--face3dvis", action="store_true", help="generate 3d face and 3d landmarks") 
-    parser.add_argument("--still", action="store_true", help="can crop back to the original videos for the full body aniamtion") 
-    parser.add_argument("--preprocess", default='crop', choices=['crop', 'extcrop', 'resize', 'full', 'extfull'], help="how to preprocess the images" ) 
-    parser.add_argument("--verbose",action="store_true", help="saving the intermedia output or not" ) 
-    parser.add_argument("--old_version",action="store_true", help="use the pth other than safetensor version" ) 
-    parser.add_argument("--facerender", default='facevid2vid', choices=['pirender', 'facevid2vid'] ) 
-    
+    parser.add_argument("--cpu", dest="mps", action="store_true")
+    parser.add_argument("--face3dvis", action="store_true", help="generate 3d face and 3d landmarks")
+    parser.add_argument("--still", action="store_true", help="can crop back to the original videos for the full body aniamtion")
+    parser.add_argument("--preprocess", default='crop', choices=['crop', 'extcrop', 'resize', 'full', 'extfull'], help="how to preprocess the images" )
+    parser.add_argument("--verbose",action="store_true", help="saving the intermedia output or not" )
+    parser.add_argument("--old_version",action="store_true", help="use the pth other than safetensor version" )
+    parser.add_argument("--facerender", default='facevid2vid', choices=['pirender', 'facevid2vid'] )
+
 
     # net structure and parameters
     parser.add_argument('--net_recon', type=str, default='resnet50', choices=['resnet18', 'resnet34', 'resnet50'], help='useless')
@@ -146,10 +147,13 @@ if __name__ == '__main__':
 
     if torch.cuda.is_available() and not args.cpu:
         args.device = "cuda"
-    elif platform.system() == 'Darwin' and args.facerender == 'pirender': # macos 
+        print("using gpu")
+    elif platform.system() == 'Darwin' and args.facerender == 'pirender': # macos
         args.device = "mps"
+        print("using mps")
     else:
         args.device = "cpu"
+        print("using cpu")
 
     main(args)
 

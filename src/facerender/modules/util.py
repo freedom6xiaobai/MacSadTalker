@@ -37,8 +37,12 @@ def make_coordinate_grid_2d(spatial_size, type):
     Create a meshgrid [-1,1] x [-1,1] of given spatial_size.
     """
     h, w = spatial_size
-    x = torch.arange(w).type(type)
-    y = torch.arange(h).type(type)
+    if type == "torch.mps.FloatTensor":
+        x = torch.arange(w, device="mps", dtype=torch.float)
+        y = torch.arange(h, device="mps", dtype=torch.float)
+    else:
+        x = torch.arange(w).type(type)
+        y = torch.arange(h).type(type)
 
     x = (2 * (x / (w - 1)) - 1)
     y = (2 * (y / (h - 1)) - 1)
@@ -53,14 +57,19 @@ def make_coordinate_grid_2d(spatial_size, type):
 
 def make_coordinate_grid(spatial_size, type):
     d, h, w = spatial_size
-    x = torch.arange(w).type(type)
-    y = torch.arange(h).type(type)
-    z = torch.arange(d).type(type)
+    if type == "torch.mps.FloatTensor":
+        x = torch.arange(w, device="mps", dtype=torch.float)
+        y = torch.arange(h, device="mps", dtype=torch.float)
+        z = torch.arange(d, device="mps", dtype=torch.float)
+    else:
+        x = torch.arange(w).type(type)
+        y = torch.arange(h).type(type)
+        z = torch.arange(d).type(type)
 
     x = (2 * (x / (w - 1)) - 1)
     y = (2 * (y / (h - 1)) - 1)
     z = (2 * (z / (d - 1)) - 1)
-   
+
     yy = y.view(1, -1, 1).repeat(d, 1, w)
     xx = x.view(1, 1, -1).repeat(d, h, 1)
     zz = z.view(-1, 1, 1).repeat(1, h, w)
@@ -334,11 +343,11 @@ class Hourglass(nn.Module):
 class KPHourglass(nn.Module):
     """
     Hourglass architecture.
-    """ 
+    """
 
     def __init__(self, block_expansion, in_features, reshape_features, reshape_depth, num_blocks=3, max_features=256):
         super(KPHourglass, self).__init__()
-        
+
         self.down_blocks = nn.Sequential()
         for i in range(num_blocks):
             self.down_blocks.add_module('down'+ str(i), DownBlock2d(in_features if i == 0 else min(max_features, block_expansion * (2 ** i)),
@@ -365,7 +374,7 @@ class KPHourglass(nn.Module):
         out = self.up_blocks(out)
 
         return out
-        
+
 
 
 class AntiAliasInterpolation2d(nn.Module):
@@ -438,7 +447,7 @@ class SPADE(nn.Module):
         beta = self.mlp_beta(actv)
         out = normalized * (1 + gamma) + beta
         return out
-    
+
 
 class SPADEResnetBlock(nn.Module):
     def __init__(self, fin, fout, norm_G, label_nc, use_se=False, dilation=1):
@@ -499,7 +508,7 @@ class audio2image(nn.Module):
         degree = torch.sum(pred*idx_tensor, 1) * 3 - 99
 
         return degree
-    
+
     def get_rotation_matrix(self, yaw, pitch, roll):
         yaw = yaw / 180 * 3.14
         pitch = pitch / 180 * 3.14
@@ -509,17 +518,17 @@ class audio2image(nn.Module):
         pitch = pitch.unsqueeze(1)
         yaw = yaw.unsqueeze(1)
 
-        roll_mat = torch.cat([torch.ones_like(roll), torch.zeros_like(roll), torch.zeros_like(roll), 
+        roll_mat = torch.cat([torch.ones_like(roll), torch.zeros_like(roll), torch.zeros_like(roll),
                           torch.zeros_like(roll), torch.cos(roll), -torch.sin(roll),
                           torch.zeros_like(roll), torch.sin(roll), torch.cos(roll)], dim=1)
         roll_mat = roll_mat.view(roll_mat.shape[0], 3, 3)
 
-        pitch_mat = torch.cat([torch.cos(pitch), torch.zeros_like(pitch), torch.sin(pitch), 
+        pitch_mat = torch.cat([torch.cos(pitch), torch.zeros_like(pitch), torch.sin(pitch),
                            torch.zeros_like(pitch), torch.ones_like(pitch), torch.zeros_like(pitch),
                            -torch.sin(pitch), torch.zeros_like(pitch), torch.cos(pitch)], dim=1)
         pitch_mat = pitch_mat.view(pitch_mat.shape[0], 3, 3)
 
-        yaw_mat = torch.cat([torch.cos(yaw), -torch.sin(yaw), torch.zeros_like(yaw),  
+        yaw_mat = torch.cat([torch.cos(yaw), -torch.sin(yaw), torch.zeros_like(yaw),
                          torch.sin(yaw), torch.cos(yaw), torch.zeros_like(yaw),
                          torch.zeros_like(yaw), torch.zeros_like(yaw), torch.ones_like(yaw)], dim=1)
         yaw_mat = yaw_mat.view(yaw_mat.shape[0], 3, 3)
@@ -532,23 +541,23 @@ class audio2image(nn.Module):
         kp = kp_canonical['value']    # (bs, k, 3)
         yaw, pitch, roll = he['yaw'], he['pitch'], he['roll']
         t, exp = he['t'], he['exp']
-    
+
         yaw = self.headpose_pred_to_degree(yaw)
         pitch = self.headpose_pred_to_degree(pitch)
         roll = self.headpose_pred_to_degree(roll)
 
         rot_mat = self.get_rotation_matrix(yaw, pitch, roll)    # (bs, 3, 3)
-    
+
         # keypoint rotation
         kp_rotated = torch.einsum('bmp,bkp->bkm', rot_mat, kp)
 
-    
+
 
         # keypoint translation
         t = t.unsqueeze_(1).repeat(1, kp.shape[1], 1)
         kp_t = kp_rotated + t
 
-        # add expression deviation 
+        # add expression deviation
         exp = exp.view(exp.shape[0], -1, 3)
         kp_transformed = kp_t + exp
 

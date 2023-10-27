@@ -16,9 +16,9 @@ checkpoints = "checkpoints"
 class Predictor(BasePredictor):
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
-        device = "cuda"
+        device = "mps"
 
-        
+
         sadtalker_paths = init_path(checkpoints,os.path.join("src","config"))
 
         # init model

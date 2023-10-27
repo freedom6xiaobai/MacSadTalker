@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image
 
 class Preprocesser:
-    def __init__(self, device='cuda'):
+    def __init__(self, device='mps'):
         self.predictor = KeypointExtractor(device)
 
     def get_landmark(self, img_np):
@@ -122,13 +122,13 @@ class Preprocesser:
 
         # Save aligned image.
         return rsize, crop, [lx, ly, rx, ry]
-    
+
     def crop(self, img_np_list, still=False, xsize=512):    # first frame for all video
         img_np = img_np_list[0]
         lm = self.get_landmark(img_np)
 
         if lm is None:
-            raise 'can not detect the landmark from source image'
+            raise Exception('can not detect the landmark from source image')
         rsize, crop, quad = self.align_face(img=Image.fromarray(img_np), lm=lm, output_size=xsize)
         clx, cly, crx, cry = crop
         lx, ly, rx, ry = quad

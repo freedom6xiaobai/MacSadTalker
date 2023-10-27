@@ -1,5 +1,5 @@
 import os
-import torch 
+import torch
 
 from gfpgan import GFPGANer
 
@@ -79,6 +79,7 @@ def enhancer_generator_no_len(images, method='gfpgan', bg_upsampler='realesrgan'
             from basicsr.archs.rrdbnet_arch import RRDBNet
             from realesrgan import RealESRGANer
             model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2)
+            device='mps'
             bg_upsampler = RealESRGANer(
                 scale=2,
                 model_path='https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth',
@@ -91,15 +92,15 @@ def enhancer_generator_no_len(images, method='gfpgan', bg_upsampler='realesrgan'
         bg_upsampler = None
 
     # determine model paths
-    model_path = os.path.join('gfpgan/weights', model_name + '.pth')
-    
+    model_path = os.path.join('_gfpgan/weights', model_name + '.pth')
+
     if not os.path.isfile(model_path):
         model_path = os.path.join('checkpoints', model_name + '.pth')
-    
+
     if not os.path.isfile(model_path):
         # download pre-trained models from url
         model_path = url
-
+    device='mps'
     restorer = GFPGANer(
         model_path=model_path,
         upscale=2,
@@ -109,15 +110,15 @@ def enhancer_generator_no_len(images, method='gfpgan', bg_upsampler='realesrgan'
 
     # ------------------------ restore ------------------------
     for idx in tqdm(range(len(images)), 'Face Enhancer:'):
-        
+
         img = cv2.cvtColor(images[idx], cv2.COLOR_RGB2BGR)
-        
+
         # restore faces and background if necessary
         cropped_faces, restored_faces, r_img = restorer.enhance(
             img,
             has_aligned=False,
             only_center_face=False,
             paste_back=True)
-        
+
         r_img = cv2.cvtColor(r_img, cv2.COLOR_BGR2RGB)
         yield r_img

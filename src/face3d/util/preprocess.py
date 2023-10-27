@@ -9,8 +9,8 @@ import os
 from skimage import transform as trans
 import torch
 import warnings
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
-warnings.filterwarnings("ignore", category=FutureWarning) 
+warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 # calculating least square problem for image alignment
@@ -37,7 +37,7 @@ def POS(xp, x):
     t = np.stack([sTx, sTy], axis=0)
 
     return t, s
-    
+
 # resize and crop images for face reconstruction
 def resize_n_crop_img(img, lm, t, s, target_size=224., mask=None):
     w0, h0 = img.size
@@ -78,7 +78,7 @@ def align_img(img, lm, lm3D, mask=None, target_size=224., rescale_factor=102.):
         img_new            --PIL.Image  (target_size, target_size, 3)
         lm_new             --numpy.array  (68, 2), y direction is opposite to v direction
         mask_new           --PIL.Image  (target_size, target_size)
-    
+
     Parameters:
         img                --PIL.Image  (raw_H, raw_W, 3)
         lm                 --numpy.array  (68, 2), y direction is opposite to v direction
@@ -98,6 +98,7 @@ def align_img(img, lm, lm3D, mask=None, target_size=224., rescale_factor=102.):
 
     # processing the image
     img_new, lm_new, mask_new = resize_n_crop_img(img, lm, t, s, target_size=target_size, mask=mask)
-    trans_params = np.array([w0, h0, s, t[0], t[1]])
+    # trans_params = np.array([w0, h0, s, t[0], t[1]])
+    trans_params = np.array([w0, h0, s, t[0, 0], t[1, 0]])
 
     return trans_params, img_new, lm_new, mask_new
